@@ -1,4 +1,4 @@
-window.EXAM_QUESTIONS = [
+[
   {
     "id": "S1Q001",
     "core_id": "S1Q001",
@@ -1502,4 +1502,4 @@ window.EXAM_QUESTIONS = [
     "answer": 1,
     "explanation": "primary-care-oriented system ช่วย first contact, continuity, comprehensiveness และ coordination ลดการใช้บริการระดับสูงที่ไม่จำเป็นและเชื่อม referral"
   }
-];
+]

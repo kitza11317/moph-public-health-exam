@@ -1,182 +1,22 @@
-(function () {
-  'use strict';
-
-  var questions = window.EXAM_QUESTIONS || [];
-  var letters = ['ก', 'ข', 'ค', 'ง'];
-  var totalSeconds = 180 * 60;
-  var current = 0;
-  var answers = [];
-  var flags = [];
-  var remaining = totalSeconds;
-  var timerId = null;
-
-  function el(id) { return document.getElementById(id); }
-
-  function initArrays() {
-    answers = new Array(questions.length);
-    flags = new Array(questions.length);
-    for (var i = 0; i < questions.length; i += 1) {
-      answers[i] = null;
-      flags[i] = false;
-    }
-  }
-
-  function formatTime(seconds) {
-    var h = Math.floor(seconds / 3600);
-    var m = Math.floor((seconds % 3600) / 60);
-    var s = seconds % 60;
-    return [h, m, s].map(function (v) { return String(v).padStart(2, '0'); }).join(':');
-  }
-
-  function startExam() {
-    try {
-      if (!questions.length) throw new Error('ไม่พบข้อมูลข้อสอบ กรุณาตรวจสอบว่าอัปโหลด questions.js แล้ว');
-      var name = el('candidateName').value.trim() || 'ผู้เข้าสอบ';
-      el('candidateDisplay').textContent = 'ผู้เข้าสอบ: ' + name;
-      el('startError').hidden = true;
-      el('startScreen').hidden = true;
-      el('examScreen').hidden = false;
-      buildGrid();
-      renderQuestion();
-      el('timerDisplay').textContent = formatTime(remaining);
-      timerId = window.setInterval(tick, 1000);
-      window.scrollTo(0, 0);
-    } catch (err) {
-      el('startError').textContent = err.message || 'ไม่สามารถเริ่มข้อสอบได้';
-      el('startError').hidden = false;
-    }
-  }
-
-  function tick() {
-    remaining -= 1;
-    if (remaining < 0) remaining = 0;
-    el('timerDisplay').textContent = formatTime(remaining);
-    if (remaining === 0) submitExam(true);
-  }
-
-  function buildGrid() {
-    var grid = el('questionGrid');
-    grid.innerHTML = '';
-    questions.forEach(function (_, index) {
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'number-btn';
-      button.textContent = String(index + 1);
-      button.addEventListener('click', function () {
-        current = index;
-        renderQuestion();
-      });
-      grid.appendChild(button);
-    });
-  }
-
-  function renderQuestion() {
-    var q = questions[current];
-    el('questionMeta').textContent = 'ข้อ ' + (current + 1) + ' จาก ' + questions.length + ' • ' + q.category;
-    el('questionText').textContent = q.question;
-    var box = el('optionsBox');
-    box.innerHTML = '';
-
-    q.options.forEach(function (optionText, optionIndex) {
-      var label = document.createElement('label');
-      label.className = 'option' + (answers[current] === optionIndex ? ' selected' : '');
-      var radio = document.createElement('input');
-      radio.type = 'radio';
-      radio.name = 'answerOption';
-      radio.checked = answers[current] === optionIndex;
-      radio.addEventListener('change', function () {
-        answers[current] = optionIndex;
-        renderQuestion();
-      });
-      var text = document.createElement('span');
-      text.innerHTML = '<b>' + letters[optionIndex] + '.</b> ' + escapeHtml(optionText);
-      label.appendChild(radio);
-      label.appendChild(text);
-      box.appendChild(label);
-    });
-
-    el('prevButton').disabled = current === 0;
-    el('nextButton').disabled = current === questions.length - 1;
-    el('flagButton').textContent = flags[current] ? '⚑ ยกเลิกเครื่องหมาย' : '⚑ ทำเครื่องหมาย';
-    updateStatus();
-  }
-
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>'"]/g, function (char) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char];
-    });
-  }
-
-  function updateStatus() {
-    var buttons = document.querySelectorAll('.number-btn');
-    var answered = 0;
-    for (var i = 0; i < answers.length; i += 1) {
-      if (answers[i] !== null) answered += 1;
-      buttons[i].className = 'number-btn' + (answers[i] !== null ? ' done' : '') + (flags[i] ? ' flagged' : '') + (i === current ? ' current' : '');
-    }
-    el('statusText').textContent = 'ตอบแล้ว ' + answered + '/' + questions.length + ' • เหลือ ' + (questions.length - answered);
-    el('progressBar').style.width = ((answered / questions.length) * 100) + '%';
-  }
-
-  function submitExam(autoSubmit) {
-    var blank = answers.filter(function (v) { return v === null; }).length;
-    if (!autoSubmit && !window.confirm('ยังไม่ได้ตอบ ' + blank + ' ข้อ ต้องการส่งข้อสอบหรือไม่?')) return;
-    if (timerId) window.clearInterval(timerId);
-    el('examScreen').hidden = true;
-    el('resultScreen').hidden = false;
-
-    var score = 0;
-    var categories = {};
-    questions.forEach(function (q, index) {
-      if (!categories[q.category]) categories[q.category] = [0, 0];
-      categories[q.category][1] += 1;
-      if (answers[index] === q.answer) {
-        score += 1;
-        categories[q.category][0] += 1;
-      }
-    });
-
-    el('scoreDisplay').textContent = score + '/' + questions.length;
-    var used = totalSeconds - remaining;
-    el('resultSummary').innerHTML = (score >= 60 ? '<b style="color:#15803d">ผ่านเกณฑ์ฝึก 60%</b>' : '<b style="color:#b91c1c">ยังไม่ถึงเกณฑ์ฝึก 60%</b>') + '<br>เวลาที่ใช้ ' + Math.floor(used / 60) + ' นาที ' + (used % 60) + ' วินาที';
-
-    var rows = '';
-    Object.keys(categories).forEach(function (category) {
-      var v = categories[category];
-      rows += '<tr><td>' + escapeHtml(category) + '</td><td>' + v[0] + '</td><td>' + v[1] + '</td><td>' + Math.round(v[0] * 100 / v[1]) + '%</td></tr>';
-    });
-    el('categoryRows').innerHTML = rows;
-    window.scrollTo(0, 0);
-  }
-
-  function showReview() {
-    var html = '<h2>เฉลยละเอียด</h2>';
-    questions.forEach(function (q, index) {
-      var correct = answers[index] === q.answer;
-      html += '<div class="card review-item ' + (correct ? 'ok' : '') + '">';
-      html += '<b>ข้อ ' + (index + 1) + ' • ' + escapeHtml(q.category) + '</b>';
-      html += '<p>' + escapeHtml(q.question) + '</p>';
-      html += '<p>คำตอบของคุณ: ' + (answers[index] === null ? 'ไม่ได้ตอบ' : letters[answers[index]] + '. ' + escapeHtml(q.options[answers[index]])) + ' ' + (correct ? '✅' : '❌') + '</p>';
-      html += '<p><b>คำตอบที่ถูก: ' + letters[q.answer] + '. ' + escapeHtml(q.options[q.answer]) + '</b></p>';
-      html += '<div class="explanation"><b>อธิบาย:</b> ' + escapeHtml(q.explanation) + '</div></div>';
-    });
-    el('reviewBox').innerHTML = html;
-    el('reviewBox').hidden = false;
-    el('reviewBox').scrollIntoView({ behavior: 'smooth' });
-  }
-
-  function attachEvents() {
-    el('startButton').addEventListener('click', startExam);
-    el('candidateName').addEventListener('keydown', function (event) { if (event.key === 'Enter') startExam(); });
-    el('prevButton').addEventListener('click', function () { if (current > 0) { current -= 1; renderQuestion(); } });
-    el('nextButton').addEventListener('click', function () { if (current < questions.length - 1) { current += 1; renderQuestion(); } });
-    el('flagButton').addEventListener('click', function () { flags[current] = !flags[current]; renderQuestion(); });
-    el('submitButton').addEventListener('click', function () { submitExam(false); });
-    el('reviewButton').addEventListener('click', showReview);
-    el('restartButton').addEventListener('click', function () { window.location.reload(); });
-    el('printButton').addEventListener('click', function () { window.print(); });
-  }
-
-  initArrays();
-  attachEvents();
+(function(){'use strict';
+var BANK=window.EXAM_QUESTIONS||[],letters=['ก','ข','ค','ง'],state=null,timerId=null;
+function E(id){return document.getElementById(id)} function esc(v){return String(v).replace(/[&<>\'\"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+function shuffle(a){var x=a.slice(),i,j,t;for(i=x.length-1;i>0;i--){j=Math.floor(Math.random()*(i+1));t=x[i];x[i]=x[j];x[j]=t}return x}
+function prepareQuestion(q){var idx=shuffle([0,1,2,3]),opts=[],ans=0,i;for(i=0;i<4;i++){opts.push(q.options[idx[i]]);if(idx[i]===q.answer)ans=i}return{id:q.id,core_id:q.core_id,category:q.category,difficulty:q.difficulty,question:q.question,options:opts,answer:ans,explanation:q.explanation}}
+function formatTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),z=s%60;return[h,m,z].map(function(v){return('0'+v).slice(-2)}).join(':')}
+function save(){try{localStorage.setItem('moph_active_exam_v3',JSON.stringify(state));E('autosaveStatus').textContent='บันทึกแล้ว'}catch(e){E('autosaveStatus').textContent='บันทึกไม่ได้'}}
+function populateCategories(){var seen={},s=E('categoryFilter');BANK.forEach(function(q){seen[q.category]=1});Object.keys(seen).sort().forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;s.appendChild(o)})}
+function startExam(){var name=E('candidateName').value.replace(/^\s+|\s+$/g,'');if(!name){E('startError').textContent='กรุณากรอกชื่อผู้เข้าสอบ';E('startError').hidden=false;return}if(BANK.length<100){E('startError').textContent='คลังข้อสอบโหลดไม่ครบ';E('startError').hidden=false;return}var mode=E('examMode').value,cat=E('categoryFilter').value,pool=BANK.filter(function(q){return cat==='all'||q.category===cat}),count=mode==='exam'?100:Math.min(50,pool.length);if(pool.length<count){pool=BANK.slice()}var chosen=shuffle(pool).slice(0,count).map(prepareQuestion);state={version:3,name:name,seat:'PH-'+String(Date.now()).slice(-6),mode:mode,category:cat,questions:chosen,answers:new Array(count),flags:new Array(count),current:0,remaining:mode==='exam'?10800:0,elapsed:0,startedAt:new Date().toISOString()};for(var i=0;i<count;i++){state.answers[i]=null;state.flags[i]=false}E('candidateDisplay').textContent=name+' • เลขที่นั่ง '+state.seat;E('loginScreen').hidden=true;E('examScreen').hidden=false;buildGrid();render();save();timerId=setInterval(tick,1000)}
+function tick(){state.elapsed++;if(state.mode==='exam'){state.remaining--;if(state.remaining<0)state.remaining=0;E('timerDisplay').textContent=formatTime(state.remaining);if(state.remaining===0){submit(true);return}}else E('timerDisplay').textContent=formatTime(state.elapsed);if(state.elapsed%5===0)save()}
+function buildGrid(){var g=E('questionGrid');g.innerHTML='';state.questions.forEach(function(_,i){var b=document.createElement('button');b.type='button';b.className='number-btn';b.textContent=i+1;b.onclick=function(){state.current=i;render()};g.appendChild(b)})}
+function render(){var q=state.questions[state.current],box=E('optionsBox');E('questionMeta').textContent='ข้อ '+(state.current+1)+' จาก '+state.questions.length+' • '+q.category+' • '+q.difficulty;E('questionText').textContent=q.question;box.innerHTML='';q.options.forEach(function(t,i){var l=document.createElement('label'),r=document.createElement('input'),sp=document.createElement('span');l.className='option'+(state.answers[state.current]===i?' selected':'');r.type='radio';r.name='answerOption';r.checked=state.answers[state.current]===i;r.onchange=function(){state.answers[state.current]=i;render();save()};sp.innerHTML='<b>'+letters[i]+'.</b> '+esc(t);l.appendChild(r);l.appendChild(sp);box.appendChild(l)});E('prevButton').disabled=state.current===0;E('nextButton').disabled=state.current===state.questions.length-1;E('flagButton').textContent=state.flags[state.current]?'⚑ ยกเลิกทบทวน':'⚑ ทำเครื่องหมาย';E('timerDisplay').textContent=state.mode==='exam'?formatTime(state.remaining):formatTime(state.elapsed);updateStatus();window.scrollTo(0,0)}
+function updateStatus(){var bs=document.querySelectorAll('.number-btn'),done=0;state.answers.forEach(function(a,i){if(a!==null)done++;bs[i].className='number-btn'+(a!==null?' done':'')+(state.flags[i]?' flagged':'')+(i===state.current?' current':'')});E('statusText').textContent='ตอบแล้ว '+done+'/'+state.questions.length+' • ยังไม่ตอบ '+(state.questions.length-done)+' • ทบทวน '+state.flags.filter(Boolean).length;E('progressBar').style.width=(done/state.questions.length*100)+'%'}
+function nextBlank(){for(var k=1;k<=state.answers.length;k++){var i=(state.current+k)%state.answers.length;if(state.answers[i]===null){state.current=i;render();return}}toast('ตอบครบทุกข้อแล้ว')}
+function submit(auto){var blank=state.answers.filter(function(v){return v===null}).length;if(!auto&&!confirm('ยังไม่ได้ตอบ '+blank+' ข้อ ต้องการส่งข้อสอบหรือไม่?'))return;if(timerId)clearInterval(timerId);var score=0,cats={};state.questions.forEach(function(q,i){if(!cats[q.category])cats[q.category]=[0,0];cats[q.category][1]++;if(state.answers[i]===q.answer){score++;cats[q.category][0]++}});state.score=score;state.categories=cats;state.finishedAt=new Date().toISOString();try{var hist=JSON.parse(localStorage.getItem('moph_history_v3')||'[]');hist.unshift({date:state.finishedAt,name:state.name,mode:state.mode,score:score,total:state.questions.length,elapsed:state.elapsed,categories:cats});localStorage.setItem('moph_history_v3',JSON.stringify(hist.slice(0,50)));localStorage.removeItem('moph_active_exam_v3')}catch(e){}E('examScreen').hidden=true;E('resultScreen').hidden=false;showResult()}
+function showResult(){var pct=Math.round(state.score*100/state.questions.length);E('scoreDisplay').textContent=state.score+'/'+state.questions.length;E('resultSummary').innerHTML=(pct>=60?'<b style="color:#187d42">ผ่านเกณฑ์ฝึก 60%</b>':'<b style="color:#b42318">ยังไม่ถึงเกณฑ์ฝึก 60%</b>')+'<br>ใช้เวลา '+formatTime(state.elapsed);E('readiness').innerHTML='ความพร้อมโดยประมาณ<br><span style="font-size:38px">'+pct+'%</span>';var rows='',weak=[];Object.keys(state.categories).sort().forEach(function(c){var v=state.categories[c],p=Math.round(v[0]*100/v[1]),ad=p<60?'ควรทบทวนเร่งด่วน':p<75?'ควรฝึกเพิ่ม':'อยู่ในเกณฑ์ดี';if(p<60)weak.push(c);rows+='<tr><td>'+esc(c)+'</td><td>'+v[0]+'/'+v[1]+'</td><td>'+p+'%</td><td>'+ad+'</td></tr>'});E('categoryRows').innerHTML=rows;E('weaknessBox').innerHTML='<b>จุดอ่อนที่ควรอ่านเพิ่ม:</b> '+(weak.length?weak.map(esc).join(', '):'ยังไม่พบหมวดที่ต่ำกว่า 60% ในชุดนี้')}
+function review(){var h='<h2>เฉลยละเอียด</h2>';state.questions.forEach(function(q,i){var ok=state.answers[i]===q.answer;h+='<div class="card review-item '+(ok?'ok':'bad')+'"><b>ข้อ '+(i+1)+' • '+esc(q.category)+'</b><p>'+esc(q.question)+'</p><p>คำตอบของคุณ: '+(state.answers[i]===null?'ไม่ได้ตอบ':letters[state.answers[i]]+'. '+esc(q.options[state.answers[i]]))+' '+(ok?'✅':'❌')+'</p><p><b>คำตอบที่ถูก: '+letters[q.answer]+'. '+esc(q.options[q.answer])+'</b></p><div class="explanation"><b>อธิบาย:</b> '+esc(q.explanation)+'</div></div>'});E('reviewBox').innerHTML=h;E('reviewBox').hidden=false;E('reviewBox').scrollIntoView()}
+function history(){E('loginScreen').hidden=true;E('historyScreen').hidden=false;var hist=[];try{hist=JSON.parse(localStorage.getItem('moph_history_v3')||'[]')}catch(e){}var rows='',avg=0;hist.forEach(function(x){avg+=x.score/x.total*100;rows+='<tr><td>'+new Date(x.date).toLocaleString('th-TH')+'</td><td>'+esc(x.name)+'</td><td>'+(x.mode==='exam'?'สอบจริง':'ฝึกทำ')+'</td><td>'+x.score+'/'+x.total+'</td><td>'+formatTime(x.elapsed)+'</td></tr>'});E('historyRows').innerHTML=rows||'<tr><td colspan="5">ยังไม่มีประวัติ</td></tr>';E('historySummary').innerHTML=hist.length?'<p>ทำแล้ว '+hist.length+' ครั้ง • คะแนนเฉลี่ย '+Math.round(avg/hist.length)+'%</p>':'<p>ยังไม่มีข้อมูลสะสม</p>'}
+function toast(t){E('toast').textContent=t;E('toast').hidden=false;setTimeout(function(){E('toast').hidden=true},1800)}
+function bind(){E('startButton').onclick=startExam;E('candidateName').onkeydown=function(e){if((e||window.event).key==='Enter')startExam()};E('prevButton').onclick=function(){if(state.current>0){state.current--;render()}};E('nextButton').onclick=function(){if(state.current<state.questions.length-1){state.current++;render()}};E('flagButton').onclick=function(){state.flags[state.current]=!state.flags[state.current];render();save()};E('unansweredButton').onclick=nextBlank;E('submitButton').onclick=function(){submit(false)};E('reviewButton').onclick=review;E('restartButton').onclick=function(){location.reload()};E('printButton').onclick=function(){window.print()};E('historyButton').onclick=history;E('backLoginButton').onclick=function(){E('historyScreen').hidden=true;E('loginScreen').hidden=false};E('clearHistoryButton').onclick=function(){if(confirm('ล้างประวัติทั้งหมดหรือไม่?')){localStorage.removeItem('moph_history_v3');history()}}}
+populateCategories();bind();if('serviceWorker'in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 }());

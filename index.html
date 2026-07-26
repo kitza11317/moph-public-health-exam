@@ -1,66 +1,7 @@
-<!doctype html>
-<html lang="th">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#12395b">
-  <title>ข้อสอบจำลองนักวิชาการสาธารณสุข 100 ข้อ</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <section id="startScreen" class="card start-screen">
-    <h1>ข้อสอบจำลองนักวิชาการสาธารณสุข</h1>
-    <p>100 ข้อ • เวลา 180 นาที • เลือกคำตอบที่ดีที่สุดเพียงข้อเดียว</p>
-    <label for="candidateName">ชื่อผู้เข้าสอบ</label>
-    <input id="candidateName" type="text" autocomplete="name" placeholder="กรอกชื่อหรือชื่อเล่น">
-    <p id="startError" class="error" hidden></p>
-    <button id="startButton" class="btn primary" type="button">เริ่มทำข้อสอบ</button>
-    <div class="note"><b>หมายเหตุ:</b> เป็นชุดฝึก ไม่ใช่ข้อสอบจริงของกระทรวง</div>
-  </section>
-
-  <div id="examScreen" hidden>
-    <header>
-      <div class="header-row">
-        <div><strong>นักวิชาการสาธารณสุข • ชุดจำลอง 100 ข้อ</strong><br><small id="candidateDisplay"></small></div>
-        <div id="timerDisplay" class="timer">03:00:00</div>
-      </div>
-    </header>
-    <main>
-      <section class="card content">
-        <div id="questionMeta" class="meta"></div>
-        <div id="questionText" class="question"></div>
-        <div id="optionsBox"></div>
-        <div class="actions">
-          <button id="prevButton" class="btn secondary" type="button">← ก่อนหน้า</button>
-          <button id="flagButton" class="btn warning" type="button">⚑ ทำเครื่องหมาย</button>
-          <button id="nextButton" class="btn primary" type="button">ถัดไป →</button>
-          <button id="submitButton" class="btn danger" type="button">ส่งข้อสอบ</button>
-        </div>
-      </section>
-      <aside class="card sidebar">
-        <strong id="statusText"></strong>
-        <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
-        <div id="questionGrid" class="number-grid"></div>
-        <p class="legend">เขียว = ตอบแล้ว • กรอบส้ม = ทำเครื่องหมาย • น้ำเงิน = ข้อปัจจุบัน</p>
-      </aside>
-    </main>
-  </div>
-
-  <section id="resultScreen" class="result-screen" hidden>
-    <div class="card content">
-      <div class="score-box"><h2>ผลการสอบ</h2><div id="scoreDisplay" class="big-score"></div><div id="resultSummary"></div></div>
-      <h3>คะแนนรายหมวด</h3>
-      <div class="table-wrap"><table><thead><tr><th>หมวด</th><th>ถูก</th><th>ทั้งหมด</th><th>%</th></tr></thead><tbody id="categoryRows"></tbody></table></div>
-      <div class="actions">
-        <button id="reviewButton" class="btn primary" type="button">ดูเฉลยละเอียด</button>
-        <button id="restartButton" class="btn secondary" type="button">ทำใหม่</button>
-        <button id="printButton" class="btn secondary" type="button">พิมพ์ผล</button>
-      </div>
-    </div>
-    <div id="reviewBox" hidden></div>
-  </section>
-
-  <script src="questions.js"></script>
-  <script src="script.js"></script>
-</body>
-</html>
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#173f63"><meta name="apple-mobile-web-app-capable" content="yes"><title>MOPH CBT นักวิชาการสาธารณสุข</title><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"></head><body>
+<div id="toast" class="toast" hidden></div>
+<section id="loginScreen" class="shell"><div class="brand"><div class="seal">สธ</div><div><h1>ระบบจำลองสอบคัดเลือก</h1><p>ตำแหน่งนักวิชาการสาธารณสุข • คลัง 500 ข้อ</p></div></div><div class="card login-card"><h2>เข้าสู่ระบบผู้เข้าสอบ</h2><label>ชื่อผู้เข้าสอบ</label><input id="candidateName" type="text" autocomplete="name" placeholder="กรอกชื่อหรือชื่อเล่น"><div class="grid2"><div><label>โหมดการทำข้อสอบ</label><select id="examMode"><option value="exam">สอบเสมือนจริง 100 ข้อ / 180 นาที</option><option value="practice">ฝึกทำ 50 ข้อ / ไม่จำกัดเวลา</option></select></div><div><label>ชุดข้อสอบ</label><select id="categoryFilter"><option value="all">ทุกหมวดตาม Blueprint</option></select></div></div><p id="startError" class="error" hidden></p><button id="startButton" class="btn primary wide">เข้าสู่ห้องสอบ</button><button id="historyButton" class="btn ghost wide">ดูประวัติและความก้าวหน้า</button><div class="notice">ระบบจะสุ่มข้อและตัวเลือกใหม่ทุกครั้ง พร้อมบันทึกคำตอบอัตโนมัติบนอุปกรณ์นี้</div></div></section>
+<section id="examScreen" hidden><header class="topbar"><div><b>MOPH CBT Simulation</b><small id="candidateDisplay"></small></div><div class="top-actions"><span id="autosaveStatus">บันทึกแล้ว</span><div id="timerDisplay" class="timer">03:00:00</div></div></header><div class="exam-layout"><main class="card question-card"><div class="question-head"><span id="questionMeta"></span><button id="flagButton" class="btn flag">⚑ ทำเครื่องหมาย</button></div><div id="questionText" class="question"></div><div id="optionsBox" class="options"></div><div class="nav-actions"><button id="prevButton" class="btn ghost">← ก่อนหน้า</button><button id="nextButton" class="btn primary">ถัดไป →</button><button id="submitButton" class="btn danger">ส่งข้อสอบ</button></div></main><aside class="card palette"><div class="palette-head"><b>แผงข้อสอบ</b><button id="unansweredButton" class="linkbtn">ไปข้อที่ยังไม่ตอบ</button></div><div id="statusText"></div><div class="progress-track"><div id="progressBar"></div></div><div id="questionGrid" class="number-grid"></div><div class="legend"><span class="lg done"></span>ตอบแล้ว <span class="lg flagged"></span>ทบทวน <span class="lg current"></span>ข้อปัจจุบัน</div></aside></div></section>
+<section id="resultScreen" class="shell" hidden><div class="card result-card"><h1>รายงานผลการสอบ</h1><div class="score-grid"><div><div id="scoreDisplay" class="big-score"></div><div id="resultSummary"></div></div><div id="readiness" class="readiness"></div></div><h2>วิเคราะห์รายวิชา</h2><div class="table-wrap"><table><thead><tr><th>หมวด</th><th>ถูก/ทั้งหมด</th><th>คะแนน</th><th>คำแนะนำ</th></tr></thead><tbody id="categoryRows"></tbody></table></div><div id="weaknessBox" class="weakness"></div><div class="nav-actions"><button id="reviewButton" class="btn primary">ดูเฉลยละเอียด</button><button id="restartButton" class="btn ghost">เริ่มชุดใหม่</button><button id="printButton" class="btn ghost">พิมพ์ผล</button></div></div><div id="reviewBox" class="review-list" hidden></div></section>
+<section id="historyScreen" class="shell" hidden><div class="card result-card"><h1>ประวัติและความก้าวหน้า</h1><div id="historySummary"></div><div class="table-wrap"><table><thead><tr><th>วันที่</th><th>ชื่อ</th><th>โหมด</th><th>คะแนน</th><th>เวลา</th></tr></thead><tbody id="historyRows"></tbody></table></div><button id="backLoginButton" class="btn primary">กลับหน้าเข้าสู่ระบบ</button><button id="clearHistoryButton" class="btn danger">ล้างประวัติ</button></div></section>
+<script src="questions.js"></script><script src="script.js"></script></body></html>
